@@ -452,11 +452,10 @@ if [[ "$binutils_ver" != 'cvs' ]]; then
 else
   if [[ -d 'binutils-cvs' ]]; then
     cd 'binutils-cvs' || exit 1
-    cvs update || exit 1
+    git pull || exit 1
     cd '..'
   else
-    cvs -d :pserver:anoncvs@sourceware.org:/cvs/src checkout binutils || exit 1
-    mv 'src' 'binutils-cvs'
+    git clone git://sourceware.org/git/binutils.git binutils-cvs || exit 1
   fi
 fi
 
