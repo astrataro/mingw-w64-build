@@ -72,7 +72,7 @@ target_i686='i686-w64-mingw32'
 target_x86_64='x86_64-w64-mingw32'
 
 ## Versions
-mingw_w64_release_ver='2.0.4'
+mingw_w64_release_ver='2.0.7'
 gcc_47_ver='4.7.1'
 gcc_46_ver='4.6.3'
 gcc_45_ver='4.5.3'
