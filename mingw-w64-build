@@ -70,6 +70,8 @@ cpu_count="$(grep -c processor /proc/cpuinfo)"
 uname_m="$(uname -m)"
 target_i686='i686-w64-mingw32'
 target_x86_64='x86_64-w64-mingw32'
+gcc='gcc'
+gcc_host=''
 
 ## Versions
 mingw_w64_release_ver='2.0.7'
@@ -292,9 +294,9 @@ if [[ "$enabled_langs" != *,* ]]; then
 fi
 
 if [[ "$gcc_ver" != 'svn' ]]; then
-  CC=gcc LDFLAGS="${gcc_ldflags[*]}" "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target"  "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-ppl="$ppl_prefix" --with-cloog="$cloog_ppl_prefix" --enable-languages="$enabled_langs" --enable-fully-dynamic-string --enable-threads=win32 || exit 1
+  CC=$gcc LDFLAGS="${gcc_ldflags[*]}" "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" $gcc_host "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-ppl="$ppl_prefix" --with-cloog="$cloog_ppl_prefix" --enable-languages="$enabled_langs" --enable-fully-dynamic-string --enable-threads=win32 || exit 1
 else
-  CC=gcc LDFLAGS="${gcc_ldflags[*]}" "../source/gcc-svn/configure" --build="$system_type" --target="$mingw_w64_target"  "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-ppl="$ppl_prefix" --with-cloog="$cloog_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string || exit 1
+  CC=$gcc LDFLAGS="${gcc_ldflags[*]}" "../source/gcc-svn/configure" --build="$system_type" --target="$mingw_w64_target" $gcc_host "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-ppl="$ppl_prefix" --with-cloog="$cloog_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string || exit 1
 fi
 }
 
@@ -534,7 +536,7 @@ if ! check_pkg_touch_success 'binutils' "$binutils_ver" 'configure' "$mingw_w64_
   rm -rfv "$mingw_w64_target" || exit 1
   mkdir "$mingw_w64_target"
   cd "$mingw_w64_target" || exit 1
-  CC=gcc "../../source/binutils-$binutils_ver/configure" --build="$system_type" --target="$mingw_w64_target" "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --with-sysroot="$mingw_w64_prefix" --prefix="$mingw_w64_prefix"  || exit 1
+  CC=$gcc "../../source/binutils-$binutils_ver/configure" --build="$system_type" $gcc_host --target="$mingw_w64_target" "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --with-sysroot="$mingw_w64_prefix" --prefix="$mingw_w64_prefix"  || exit 1
 fi
 pkg_touch_success 'binutils' "$binutils_ver" 'configure' "$mingw_w64_target"
 if ! check_pkg_touch_success 'binutils' "$binutils_ver" 'compile' "$mingw_w64_target"; then
@@ -744,7 +746,7 @@ create_pkg_dirs 'gmp' || exit 1
 download_extract "gmp-$gmp_ver" "ftp://ftp.gnu.org/gnu/gmp/gmp-$gmp_ver" 'tar.bz2'
 if ! check_pkg_touch_success 'gmp' "$gmp_release_ver" 'configure' "$uname_m"; then
   clean_build
-  CC=gcc "../source/gmp-$gmp_ver/configure" --build="$system_type" --prefix="$gmp_prefix" --disable-shared --enable-static --enable-cxx CPPFLAGS='-fexceptions' || exit 1
+  CC=$gcc "../source/gmp-$gmp_ver/configure" --build="$system_type" $gcc_host --prefix="$gmp_prefix" --disable-shared --enable-static --enable-cxx CPPFLAGS='-fexceptions' || exit 1
 fi
 pkg_touch_success 'gmp' "$gmp_release_ver" 'configure' "$uname_m"
 
@@ -771,7 +773,7 @@ create_pkg_dirs 'mpfr' || exit 1
 download_extract "mpfr-$mpfr_release_ver" "http://www.mpfr.org/mpfr-current/mpfr-$mpfr_release_ver" 'tar.xz'
 if ! check_pkg_touch_success 'mpfr' "$mpfr_release_ver" 'configure' "$uname_m"; then
   clean_build
-  CC=gcc "../source/mpfr-$mpfr_release_ver/configure" --build="$system_type" --prefix="$mpfr_prefix" --disable-shared --enable-static --with-gmp="$gmp_prefix"  || exit 1
+  CC=$gcc "../source/mpfr-$mpfr_release_ver/configure" --build="$system_type" $gcc_host --prefix="$mpfr_prefix" --disable-shared --enable-static --with-gmp="$gmp_prefix"  || exit 1
 fi
 pkg_touch_success 'mpfr' "$mpfr_release_ver" 'configure' "$uname_m"
 
@@ -797,7 +799,7 @@ create_pkg_dirs 'mpc' || exit 1
 download_extract "mpc-$mpc_release_ver" "http://www.multiprecision.org/mpc/download/mpc-$mpc_release_ver" 'tar.gz'
 if ! check_pkg_touch_success 'mpc' "$mpc_release_ver" 'configure' "$uname_m"; then
   clean_build
-  CC=gcc "../source/mpc-$mpc_release_ver/configure" --build="$system_type" --prefix="$mpc_prefix" --with-gmp="$gmp_prefix" --with-mpfr="$mpfr_prefix" --disable-shared --enable-static || exit 1
+  CC=$gcc "../source/mpc-$mpc_release_ver/configure" --build="$system_type" $gcc_host --prefix="$mpc_prefix" --with-gmp="$gmp_prefix" --with-mpfr="$mpfr_prefix" --disable-shared --enable-static || exit 1
 fi
 pkg_touch_success 'mpc' "$mpc_release_ver" 'configure' "$uname_m"
 
@@ -833,8 +835,8 @@ download_extract "ppl-$ppl_ver" "ftp://ftp.cs.unipr.it/pub/ppl/releases/$ppl_ver
 if ! check_pkg_touch_success 'ppl' "$ppl_release_ver" 'configure' "$uname_m"; then
   clean_build
   case "$ppl_ver" in
-    '0.10.2' ) CC=gcc "../source/ppl-$ppl_ver/configure" --build="$system_type" --prefix="$ppl_prefix" --enable-static --disable-shared --enable-watchdog --with-libgmp-prefix="$gmp_prefix" CPPFLAGS='-fexceptions' || exit 1 ;;
-    * ) CC=gcc "../source/ppl-$ppl_ver/configure" --build="$system_type" --prefix="$ppl_prefix" --enable-static --disable-shared --with-gmp="$gmp_prefix" CPPFLAGS='-fexceptions' || exit 1 ;;
+    '0.10.2' ) CC=$gcc "../source/ppl-$ppl_ver/configure" --build="$system_type" $gcc_host --prefix="$ppl_prefix" --enable-static --disable-shared --enable-watchdog --with-libgmp-prefix="$gmp_prefix" CPPFLAGS='-fexceptions' || exit 1 ;;
+    * ) CC=$gcc "../source/ppl-$ppl_ver/configure" --build="$system_type" $gcc_host --prefix="$ppl_prefix" --enable-static --disable-shared --with-gmp="$gmp_prefix" CPPFLAGS='-fexceptions' || exit 1 ;;
   esac
 fi
 pkg_touch_success 'ppl' "$ppl_release_ver" 'configure' "$uname_m"
@@ -869,7 +871,7 @@ create_pkg_dirs 'cloog-ppl' || exit 1
 download_extract "cloog-ppl-$cloog_ppl_release_ver" "ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-ppl-$cloog_ppl_release_ver" 'tar.gz'
 if ! check_pkg_touch_success 'cloog_ppl' "$cloog_ppl_release_ver" 'configure' "$uname_m"; then
   clean_build
-  CC=gcc "../source/cloog-ppl-$cloog_ppl_release_ver/configure" --build="$system_type" --prefix="$cloog_ppl_prefix" --enable-static --disable-shared --with-gmp="$gmp_prefix" --with-ppl="$ppl_prefix" --with-host-libstdcxx='-lstdc++' || exit 1
+  CC=$gcc "../source/cloog-ppl-$cloog_ppl_release_ver/configure" --build="$system_type" $gcc_host --prefix="$cloog_ppl_prefix" --enable-static --disable-shared --with-gmp="$gmp_prefix" --with-ppl="$ppl_prefix" --with-host-libstdcxx='-lstdc++' || exit 1
 fi
 pkg_touch_success 'cloog_ppl' "$cloog_ppl_release_ver" 'configure' "$uname_m"
 
@@ -898,7 +900,7 @@ create_pkg_dirs 'cloog' || exit 1
 download_extract "cloog-$cloog_release_ver" "http://www.bastoul.net/cloog/pages/download/cloog-$cloog_release_ver" 'tar.gz'
 if ! check_pkg_touch_success 'cloog' "$cloog_release_ver" 'configure' "$uname_m"; then
   clean_build
-  CC=gcc "../source/cloog-$cloog_release_ver/configure" --prefix="$cloog_prefix" --build="$system_type" --enable-static --disable-shared --with-isl-prefix="$isl_prefix" --with-gmp-prefix="$gmp_prefix" --with-osl=no || exit 1
+  CC=$gcc "../source/cloog-$cloog_release_ver/configure" --prefix="$cloog_prefix" --build="$system_type" $gcc_host --enable-static --disable-shared --with-isl-prefix="$isl_prefix" --with-gmp-prefix="$gmp_prefix" --with-osl=no || exit 1
 fi
 pkg_touch_success 'cloog' "$cloog_release_ver" 'configure' "$uname_m"
 if ! check_pkg_touch_success 'cloog' "$cloog_release_ver" 'compile' "$uname_m"; then
@@ -924,7 +926,7 @@ create_pkg_dirs 'isl' || exit 1
 download_extract "isl-$isl_release_ver" "ftp://gcc.gnu.org/pub/gcc/infrastructure/isl-$isl_release_ver" 'tar.bz2'
 if ! check_pkg_touch_success 'isl' "$isl_release_ver" 'configure' "$uname_m"; then
   clean_build
-  CC=gcc "../source/isl-$isl_release_ver/configure" --prefix="$isl_prefix" --build="$system_type" --enable-static --disable-shared --with-gmp-prefix="$gmp_prefix" --with-piplib=no --with-clang=no || exit 1
+  CC=$gcc "../source/isl-$isl_release_ver/configure" --prefix="$isl_prefix" --build="$system_type" $gcc_host --enable-static --disable-shared --with-gmp-prefix="$gmp_prefix" --with-piplib=no --with-clang=no || exit 1
 fi
 pkg_touch_success 'isl' "$isl_release_ver" 'configure' "$uname_m"
 if ! check_pkg_touch_success 'isl' "$isl_release_ver" 'compile' "$uname_m"; then
@@ -1126,6 +1128,7 @@ while true; do
     --disable-shared ) static_build=('--disable-shared' '--enable-static'); shift ;;
     --threads=* ) thread_lib="${1#*=}"; shift ;;
     --clean-build ) clean_build='yes'; shift ;;
+    --target-build ) gcc='i686-w64-mingw32-gcc'; gcc_host='--host=i686-w64-mingw32'; shift ;;
     -- ) shift; break ;;
     -* ) echo "Error, unknown option: '$1'."; exit 1 ;;
     * ) break ;;
