@@ -79,7 +79,7 @@ gcc_45_ver='4.5.3'
 mpfr_release_ver='3.1.1'
 mpc_release_ver='0.9'
 cloog_ppl_release_ver='0.15.11'
-binutils_release_ver='2.22'
+binutils_release_ver='2.23'
 gmp_release_ver='5.0.5'
 ppl_release_ver='0.12.1'
 
@@ -448,7 +448,7 @@ mkdir -p 'build' 'source'
 cd 'source' || exit 1
 
 if [[ "$binutils_ver" != 'cvs' ]]; then
-  download_extract "binutils-$binutils_release_ver.tar.bz2" "ftp://ftp.gnu.org/gnu/binutils/binutils-$binutils_release_ver.tar.bz2" 'j'
+  download_extract "binutils-$binutils_release_ver.tar.gz" "ftp://ftp.gnu.org/gnu/binutils/binutils-$binutils_release_ver.tar.gz" 'z'
 else
   if [[ -d 'binutils-cvs' ]]; then
     cd 'binutils-cvs' || exit 1
