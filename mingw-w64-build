@@ -70,6 +70,8 @@ cpu_count="$(grep -c processor /proc/cpuinfo)"
 uname_m="$(uname -m)"
 target_i686='i686-w64-mingw32'
 target_x86_64='x86_64-w64-mingw32'
+gcc='gcc'
+gcc_host=''
 
 ## Versions
 mingw_w64_release_ver='2.0.7'
@@ -250,7 +252,7 @@ if [[ "$enabled_langs" != *,* ]]; then
   enabled_langs="${enabled_langs%,}"
 fi
 
-CC=gcc LDFLAGS="${gcc_ldflags[*]}" "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target"  "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-ppl="$ppl_prefix" --with-cloog="$cloog_ppl_prefix" --enable-languages="$enabled_langs" --enable-fully-dynamic-string || exit 1
+CC=$gcc LDFLAGS="${gcc_ldflags[*]}" "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" $gcc_host "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-ppl="$ppl_prefix" --with-cloog="$cloog_ppl_prefix" --enable-languages="$enabled_langs" --enable-fully-dynamic-string --disable-registry || exit 1
 }
 
 choose_static_build () {
@@ -460,7 +462,7 @@ else
 fi
 
 clean_build
-CC=gcc "../source/binutils-$binutils_ver/configure" --build="$system_type" --target="$mingw_w64_target" "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --with-sysroot="$mingw_w64_prefix" --prefix="$mingw_w64_prefix"  || exit 1
+CC=$gcc "../source/binutils-$binutils_ver/configure" --build="$system_type" $gcc_host --target="$mingw_w64_target" "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --with-sysroot="$mingw_w64_prefix" --prefix="$mingw_w64_prefix"  || exit 1
 make -j "$cpu_count" || exit 1
 make install || exit 1
 
@@ -625,7 +627,7 @@ gmp_prefix="$gcc_packages_dir/gmp/gmp-$gmp_ver-$uname_m"
 download_extract "gmp-$gmp_ver.tar.bz2" "ftp://ftp.gnu.org/gnu/gmp/gmp-$gmp_ver.tar.bz2" 'j'
 if [[ ! -d "$gmp_prefix" ]]; then
   clean_build
-  CC=gcc "../source/gmp-$gmp_ver/configure" --build="$system_type" --prefix="$gmp_prefix" --disable-shared --enable-static --enable-cxx CPPFLAGS='-fexceptions' || exit 1
+  CC=$gcc "../source/gmp-$gmp_ver/configure" --build="$system_type" $gcc_host --prefix="$gmp_prefix" --disable-shared --enable-static --enable-cxx CPPFLAGS='-fexceptions' || exit 1
   make -j "$cpu_count" || exit 1
   make install || exit 1
 fi
@@ -638,7 +640,7 @@ cd 'source' || exit 1
 download_extract "mpfr-$mpfr_release_ver.tar.xz" "http://www.mpfr.org/mpfr-current/mpfr-$mpfr_release_ver.tar.xz" 'J'
 if [[ ! -d "$mpfr_prefix" ]]; then
   clean_build
-  CC=gcc "../source/mpfr-$mpfr_release_ver/configure" --build="$system_type" --prefix="$mpfr_prefix" --disable-shared --enable-static --with-gmp="$gmp_prefix"  || exit 1
+  CC=$gcc "../source/mpfr-$mpfr_release_ver/configure" --build="$system_type" $gcc_host --prefix="$mpfr_prefix" --disable-shared --enable-static --with-gmp="$gmp_prefix"  || exit 1
   make -j "$cpu_count" || exit 1
   make install || exit 1
 fi
@@ -651,7 +653,7 @@ cd 'source' || exit 1
 download_extract "mpc-$mpc_release_ver.tar.gz" "http://www.multiprecision.org/mpc/download/mpc-$mpc_release_ver.tar.gz" 'z'
 if [[ ! -d "$mpc_prefix" ]]; then
   clean_build
-  CC=gcc "../source/mpc-$mpc_release_ver/configure" --build="$system_type" --prefix="$mpc_prefix" --with-gmp="$gmp_prefix" --with-mpfr="$mpfr_prefix" --disable-shared --enable-static || exit 1
+  CC=$gcc "../source/mpc-$mpc_release_ver/configure" --build="$system_type" $gcc_host --prefix="$mpc_prefix" --with-gmp="$gmp_prefix" --with-mpfr="$mpfr_prefix" --disable-shared --enable-static || exit 1
   make -j "$cpu_count" || exit 1
   make install || exit 1
 fi
@@ -675,8 +677,8 @@ download_extract "ppl-$ppl_ver.tar.bz2" "ftp://ftp.cs.unipr.it/pub/ppl/releases/
 if [[ ! -d "$ppl_prefix" ]]; then
   clean_build
   case "$ppl_ver" in
-    "$ppl_release_ver" ) CC=gcc "../source/ppl-$ppl_ver/configure" --build="$system_type" --prefix="$ppl_prefix" --enable-static --disable-shared --with-gmp="$gmp_prefix" CPPFLAGS='-fexceptions' || exit 1 ;;
-    '0.10.2' ) CC=gcc "../source/ppl-$ppl_ver/configure" --build="$system_type" --prefix="$ppl_prefix" --enable-static --disable-shared --enable-watchdog --with-libgmp-prefix="$gmp_prefix" CPPFLAGS='-fexceptions' || exit 1 ;;
+    "$ppl_release_ver" ) CC=$gcc "../source/ppl-$ppl_ver/configure" --build="$system_type" $gcc_host --prefix="$ppl_prefix" --enable-static --disable-shared --with-gmp="$gmp_prefix" CPPFLAGS='-fexceptions' || exit 1 ;;
+    '0.10.2' ) CC=$gcc "../source/ppl-$ppl_ver/configure" --build="$system_type" $gcc_host --prefix="$ppl_prefix" --enable-static --disable-shared --enable-watchdog --with-libgmp-prefix="$gmp_prefix" CPPFLAGS='-fexceptions' || exit 1 ;;
   esac
   if [[ "$cpu_count" -ge '2' ]]; then
     make -j 2 || exit 1
@@ -694,7 +696,7 @@ cd 'source' || exit 1
 download_extract "cloog-ppl-$cloog_ppl_release_ver.tar.gz" "ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-ppl-$cloog_ppl_release_ver.tar.gz" 'z'
 if [[ ! -d "$cloog_ppl_prefix" ]]; then
   clean_build
-  CC=gcc "../source/cloog-ppl-$cloog_ppl_release_ver/configure" --build="$system_type" --prefix="$cloog_ppl_prefix" --enable-static --disable-shared --with-gmp="$gmp_prefix" --with-ppl="$ppl_prefix" --with-host-libstdcxx='-lstdc++' || exit 1
+  CC=$gcc "../source/cloog-ppl-$cloog_ppl_release_ver/configure" --build="$system_type" $gcc_host --prefix="$cloog_ppl_prefix" --enable-static --disable-shared --with-gmp="$gmp_prefix" --with-ppl="$ppl_prefix" --with-host-libstdcxx='-lstdc++' || exit 1
   make -j "$cpu_count" || exit 1
   make install || exit 1
 fi
@@ -865,6 +867,7 @@ while true; do
     --disable-nls ) disable_nls=('--disable-nls'); shift ;;
     --disable-shared ) static_build=('--disable-shared' '--enable-static'); shift ;;
     --clean-build ) clean_build='yes'; shift ;;
+    --target-build ) gcc='i686-w64-mingw32-gcc'; gcc_host='--host=i686-w64-mingw32'; shift ;;
     -- ) shift; break ;;
     -* ) echo "Error, unknown option: '$1'."; exit 1 ;;
     * ) break ;;
