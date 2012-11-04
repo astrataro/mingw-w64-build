@@ -423,20 +423,6 @@ mkdir -p 'build'
 cd 'build' || exit 1
 }
 
-build_winpthreads () {
-cd "$mingw_w64_build_dir" || exit 1
-rm -frv 'winpthreads '
-mkdir -p 'winpthreads'
-cd 'winpthreads' || exit 1
-local mingw_w64_target="$1"
-local mingw_w64_prefix="$2"
-local mingw_w64_arch="$3"
-shift 3
-'../../source/mingw-w64-svn/experimental/winpthreads/configure' --build="$system_type" --host="$mingw_w64_target" --disable-shared --enable-static --prefix="$mingw_w64_prefix/$mingw_w64_arch-w64-mingw32"
-make || exit 1
-make install || exit 1
-}
-
 build_mingw_w64 () {
 local mingw_w64_target="$1"
 local mingw_w64_prefix="$2"
@@ -571,8 +557,6 @@ if [[ "$mingw_w64_ver" = 'svn' ]]; then
     svn_ver_before=$(sed -n 4p '.svn/entries')
     svn update || exit 1
     svn_ver_after=$(sed -n 4p '.svn/entries')
-    cd '../experimental/winpthreads' || exit 1
-    svn update || exit 1
     if [[ "$svn_ver_before" = "$svn_ver_after" && -d "$mingw_w64_i686_prefix" || -d "$mingw_w64_x86_64_prefix" ]]; then
       yes_no_sel 'MinGW-w64 is already the latest version, continue with the build anyway? [y/n]: '
       if [[ "$user_input" = [Nn] ]]; then
@@ -583,9 +567,6 @@ if [[ "$mingw_w64_ver" = 'svn' ]]; then
     mkdir 'mingw-w64-svn'
     cd 'mingw-w64-svn' || exit 1
     svn checkout http://mingw-w64.svn.sourceforge.net/svnroot/mingw-w64/trunk || exit 1
-    mkdir 'experimental'
-    cd 'experimental' || exit 1
-    svn checkout http://mingw-w64.svn.sourceforge.net/svnroot/mingw-w64/experimental/winpthreads || exit 1
   fi
 else
   if [[ -d "mingw-w64-$mingw_w64_release_ver" && -d "$mingw_w64_i686_prefix" || -d "$mingw_w64_x86_64_prefix" ]]; then
@@ -598,16 +579,6 @@ else
   wget -O "mingw-w64-$mingw_w64_release_ver.tar.gz" http://downloads.sourceforge.net/project/mingw-w64/mingw-w64/mingw-w64-release/mingw-w64-v${mingw_w64_release_ver}.tar.gz
   tar -xvzf "mingw-w64-$mingw_w64_release_ver.tar.gz"
   mv "mingw-w64-v$mingw_w64_release_ver" "mingw-w64-$mingw_w64_release_ver"
-  if [[ -d 'mingw-w64-svn' ]]; then
-    cd 'mingw-w64-svn/experimental/winpthreads' || exit 1
-    svn update || exit 1
-  else
-    mkdir 'mingw-w64-svn' 
-    cd 'mingw-w64-svn' || exit 1
-    mkdir 'experimental'
-    cd 'experimental' || exit 1
-    svn checkout http://mingw-w64.svn.sourceforge.net/svnroot/mingw-w64/experimental/winpthreads || exit 1
-  fi
 fi
 }
 
@@ -704,12 +675,10 @@ fi
 
 build_32bit () {
 build_mingw_w64 "$target_i686" "$mingw_w64_i686_prefix"
-build_winpthreads "$target_i686" "$mingw_w64_i686_prefix" 'i686'
 }
 
 build_64bit () {
 build_mingw_w64 "$target_x86_64" "$mingw_w64_x86_64_prefix"
-build_winpthreads "$target_x86_64" "$mingw_w64_x86_64_prefix" 'x86_64'
 }
 
 check_missing_packages () {
