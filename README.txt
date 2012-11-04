@@ -13,6 +13,9 @@ Usage:
 
 ---------------------------------------------------------
 Version History:
+r3 - 2012-11-04
+    Removed winpthreads build
+    Updated mpc to 1.0
 r2 - 2012-10-27
     Re-created script based on Zeranoe's Script v3.0.6
     Replaced second script with parameter to the first
