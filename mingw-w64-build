@@ -965,8 +965,7 @@ download_extract "pthreads-w32-$pthreads_w32_release_ver-release" "ftp://sourcew
 cd "pthreads-w32-$pthreads_w32_release_ver-release" || exit 1
 make realclean
 make CROSS="$target-" clean GC-static
-cp 'libpthreadGC2.a' "$prefix/lib/" || exit 1
-ln -s "$prefix/lib/libpthreadGC2.a" "$prefix/$target/lib/libpthread.a"
+cp 'libpthreadGC2.a' "$prefix/$target/lib/" || exit 1
 cp 'pthread.h' 'sched.h' 'semaphore.h' "$prefix/$target/include/" || exit 1
 }
 
