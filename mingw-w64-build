@@ -901,7 +901,7 @@ fi
 cd "$gcc_packages_dir" || exit 1
 create_pkg_dirs 'cloog' || exit 1
 
-download_extract "cloog-$cloog_release_ver" "http://www.bastoul.net/cloog/pages/download/cloog-$cloog_release_ver" 'tar.gz'
+download_extract "cloog-$cloog_release_ver" "ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-$cloog_release_ver" 'tar.gz'
 if ! check_pkg_touch_success 'cloog' "$cloog_release_ver" 'configure' "$uname_m"; then
   clean_build
   CC=$gcc "../source/cloog-$cloog_release_ver/configure" --prefix="$cloog_prefix" --build="$system_type" $gcc_host --enable-static --disable-shared --with-isl-prefix="$isl_prefix" --with-gmp-prefix="$gmp_prefix" --with-osl=no || exit 1
