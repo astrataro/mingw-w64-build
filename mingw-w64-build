@@ -84,8 +84,8 @@ cloog_ppl_release_ver='0.15.11'
 binutils_release_ver='2.23.1'
 gmp_release_ver='5.1.1'
 ppl_release_ver='1.0'
-isl_release_ver='0.10'
-cloog_release_ver='0.17.0'
+isl_release_ver='0.11.1'
+cloog_release_ver='0.18.0'
 pthreads_w32_release_ver='2-9-1'
 
 ## Locations
