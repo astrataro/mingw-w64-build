@@ -2,8 +2,10 @@ MinGW-w64 Build Scripts
 
 These build scripts are based on Zeranoe's MinGW-w64 build scripts (http://ffmpeg.zeranoe.com/blog/?cat=4)
 
-Differences to Zeranoe's Script v3.0.6:
-- Updated to GCC 4.7.2, binutils 2.23
+Differences to Zeranoe's Script v3.1.0:
+- Support for GCC 4.8.0
+- Updated to mpfr 3.1.2, binutils 2.23.1
+- Updated to gmp 5.1.1, isl 0.11.1 and cloog 0.18.0 when building GCC 4.8.0
 - New option to build for target OS
 
 Usage:
@@ -13,6 +15,12 @@ Usage:
 
 ---------------------------------------------------------
 Version History:
+r4 - 2013-03-24
+    Updated to Zeranoe's Script v3.1.0
+    Restored winpthreads, threading library can now be choosen on the commandline
+    Support for GCC 4.8.0
+    Updated to mpfr 3.1.2, binutils 2.23.1
+    Updated to gmp 5.1.1, isl 0.11.1 and cloog 0.18.0 when building GCC 4.8.0
 r3 - 2012-11-04
     Removed winpthreads build
     Updated mpc to 1.0
