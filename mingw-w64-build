@@ -76,7 +76,7 @@ gcc_host=''
 
 ## Versions
 mingw_w64_release_ver='2.0.7'
-gcc_release_ver='4.8.0'
+gcc_release_ver='4.8.1'
 mpfr_release_ver='3.1.2'
 mpc_release_ver='1.0.1'
 binutils_release_ver='2.23.2'
