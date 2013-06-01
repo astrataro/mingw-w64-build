@@ -4,6 +4,7 @@ These build scripts are based on Zeranoe's MinGW-w64 build scripts (http://ffmpe
 
 Differences to Zeranoe's Script v3.2.3:
 - New option to build for target OS
+- GCC 4.8.1, GMP 5.1.2
 
 Usage:
 - Build a Cross-Compiler Toolchain with the script
@@ -12,6 +13,8 @@ Usage:
 
 ---------------------------------------------------------
 Version History:
+r6 - 2013-06-01
+    GCC 4.8.1, GMP 5.12
 r5 - 2013-04-13
     Updated to Zeranoe's Script v3.2.3
 r4 - 2013-03-24
