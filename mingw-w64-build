@@ -289,8 +289,8 @@ if [[ "$enabled_langs" != *,* ]]; then
 fi
 
 case "$gcc_ver" in
-  "$gcc_old_release_ver" ) LDFLAGS="-L$gmp_prefix/lib" "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" $gcc_host "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-ppl="$ppl_prefix" --with-cloog="$cloog_ppl_prefix" --with-mpfr="$mpfr_prefix" --with-gmp-include="$gmp_prefix/include" --with-gmp-lib="$gmp_prefix/lib" --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]} -lm" --with-cloog="$cloog_ppl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string || exit 1 ;;
-  * ) "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" $gcc_host "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-cloog="$cloog_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string --enable-lto || exit 1 ;;
+  "$gcc_old_release_ver" ) CC=$gcc LDFLAGS="-L$gmp_prefix/lib" "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" $gcc_host "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-ppl="$ppl_prefix" --with-cloog="$cloog_ppl_prefix" --with-mpfr="$mpfr_prefix" --with-gmp-include="$gmp_prefix/include" --with-gmp-lib="$gmp_prefix/lib" --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]} -lm" --with-cloog="$cloog_ppl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string || exit 1 ;;
+  * ) CC=$gcc "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" $gcc_host "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-cloog="$cloog_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string --enable-lto || exit 1 ;;
 esac
 }
 
@@ -482,7 +482,7 @@ cd 'winpthreads' || exit 1
 local mingw_w64_target="$1"
 local mingw_w64_prefix="$2"
 shift 3
-"../../source/mingw-w64-$mingw_w64_ver/mingw-w64-libraries/winpthreads/configure" --build="$system_type" --host="$mingw_w64_target" "${static_build[@]}" --prefix="$mingw_w64_prefix"
+"../../source/mingw-w64-$mingw_w64_ver/mingw-w64-libraries/winpthreads/configure" --build="$system_type" --host="$mingw_w64_target" "${static_build[@]}" --prefix="$mingw_w64_prefix/$mingw_w64_target"
 make || exit 1
 make install || exit 1
 }
@@ -557,16 +557,11 @@ clean_build
 mkdir -p 'headers' 'crt'
 cd 'headers' || exit 1
 
-"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-headers/configure" --enable-sdk=all --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix" || exit 1
+"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-headers/configure" --enable-sdk=all --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix/$mingw_w64_target" || exit 1
 
 make install || exit 1
 cd "$mingw_w64_prefix" || exit 1
 ln -s "./$mingw_w64_target" './mingw'
-if [[ ! -d "./$mingw_w64_target/include" ]]; then
-  cd "./$mingw_w64_target" || exit 1
-  ln -s '../include' './include'
-  cd "$mingw_w64_prefix" || exit 1
-fi
 
 build_gmp
 build_mpfr
@@ -601,15 +596,9 @@ make install-gcc || exit 1
 # Build mingw-w64 CRT 
 cd "$mingw_w64_build_dir/crt" || exit 1
 
-"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-crt/configure" --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" || exit 1
+"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-crt/configure" --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix/$mingw_w64_target" --with-sysroot="$mingw_w64_prefix" || exit 1
 make -j "$cpu_count" || exit 1
 make install || exit 1
-
-cd "$mingw_w64_prefix" || exit 1
-mv "./$mingw_w64_target/lib/"* './lib/'
-rm -fr "./$mingw_w64_target/lib"
-cd "./$mingw_w64_target"
-ln -s '../lib' './lib'
 
 # Build GCC
 cd "$packages_dir/gcc/build" || exit 1
@@ -968,15 +957,15 @@ if [[ "$static_build" != *"disable-shared" ]]; then
   cd "$packages_dir/pthread-w32/source/pthreads-w32-$pthreads_w32_ver" || exit 1
 fi
 make CROSS="$target-" realclean GC-static ARCH="$pthread_arch"
-cp 'libpthreadGC2.a' "$prefix/lib/" || exit 1
-cp 'pthread.h' 'sched.h' 'semaphore.h' "$prefix/include/" || exit 1
-cd "$prefix/lib" || exit 1
+cp 'libpthreadGC2.a' "$prefix/$target/lib/" || exit 1
+cp 'pthread.h' 'sched.h' 'semaphore.h' "$prefix/$target/include/" || exit 1
+cd "$prefix/$target/lib" || exit 1
 ln -s "./libpthreadGC2.a" "./libpthread.a"
 cd '../include' || exit 1
 
 for file in 'pthread.h' 'sched.h' 'semaphore.h'; do
-  ed -s "$prefix/include/$file" <<< $'g/ __declspec (dllexport)/s///g\nw\nq'
-  ed -s "$prefix/include/$file" <<< $'g/ __declspec (dllimport)/s///g\nw\nq'
+  ed -s "$prefix/$target/include/$file" <<< $'g/ __declspec (dllexport)/s///g\nw\nq'
+  ed -s "$prefix/$target/include/$file" <<< $'g/ __declspec (dllimport)/s///g\nw\nq'
 done
 }
 
