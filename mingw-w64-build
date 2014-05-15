@@ -524,7 +524,7 @@ local mingw_w64_target="$1"
 local mingw_w64_prefix="$2"
 shift 3
 build_progress 'winpthreads' 'Configuring'
-"../../source/mingw-w64-$mingw_w64_ver/mingw-w64-libraries/winpthreads/configure" --build="$system_type" --host="$mingw_w64_target" "${static_build[@]}" --prefix="$mingw_w64_prefix" > >(build_log) 2>&1 || exit 1
+"../../source/mingw-w64-$mingw_w64_ver/mingw-w64-libraries/winpthreads/configure" --build="$system_type" --host="$mingw_w64_target" "${static_build[@]}" --prefix="$mingw_w64_prefix/$mingw_w64_target" > >(build_log) 2>&1 || exit 1
 build_progress 'Done'
 
 build_progress 'winpthreads' 'Building'
@@ -652,7 +652,7 @@ mkdir -p 'headers' 'crt'
 cd 'headers' || exit 1
 
 build_progress 'mingw-w64 headers' 'Configuring'
-"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-headers/configure" --enable-sdk=all --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix" > >(build_log) 2>&1 || exit 1
+"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-headers/configure" --enable-sdk=all --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix/$mingw_w64_target" > >(build_log) 2>&1 || exit 1
 build_progress 'Done'
 
 build_progress 'mingw-w64 headers' 'Installing'
@@ -661,11 +661,6 @@ build_progress 'Done'
 
 cd "$mingw_w64_prefix" || exit 1
 ln -s "./$mingw_w64_target" './mingw'
-if [[ ! -d "./$mingw_w64_target/include" ]]; then
-  cd "./$mingw_w64_target" || exit 1
-  ln -s '../include' './include'
-  cd "$mingw_w64_prefix" || exit 1
-fi
 
 case "$gcc_ver" in
   $gcc_release_ver ) cloog_ver='0.18.1'; isl_ver='0.12.2' ;;
@@ -737,7 +732,7 @@ build_progress 'Done'
 cd "$mingw_w64_build_dir/crt" || exit 1
 
 build_progress 'mingw-w64 crt' 'Configuring'
-"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-crt/configure" --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" > >(build_log) 2>&1 || exit 1
+"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-crt/configure" --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix/$mingw_w64_target" --with-sysroot="$mingw_w64_prefix" > >(build_log) 2>&1 || exit 1
 build_progress 'Done'
 
 build_progress 'mingw-w64 crt' 'Building'
@@ -747,12 +742,6 @@ build_progress 'Done'
 build_progress 'mingw-w64 crt' 'Installing'
 make install > >(build_log) 2>&1 || exit 1
 build_progress 'Done'
-
-cd "$mingw_w64_prefix" || exit 1
-mv "./$mingw_w64_target/lib/"* './lib/'
-rm -fr "./$mingw_w64_target/lib"
-cd "./$mingw_w64_target"
-ln -s '../lib' './lib'
 
 # Build GCC
 cd "$pkgs_dir/gcc/build" || exit 1
@@ -934,14 +923,14 @@ build_progress 'pthreads-w32 static' 'Building'
 make CROSS="$target-" realclean GC-static ARCH="$pthread_arch" > >(build_log) 2>&1 || exit 1
 build_progress 'Done'
 
-cp 'libpthreadGC2.a' "$prefix/lib/" || exit 1
-cp 'pthread.h' 'sched.h' 'semaphore.h' "$prefix/include/" || exit 1
-cd "$prefix/lib" || exit 1
+cp 'libpthreadGC2.a' "$prefix/$target/lib/" || exit 1
+cp 'pthread.h' 'sched.h' 'semaphore.h' "$prefix/$target/include/" || exit 1
+cd "$prefix/$target/lib" || exit 1
 ln -s "./libpthreadGC2.a" "./libpthread.a"
 cd '../include' || exit 1
 
 for file in 'pthread.h' 'sched.h' 'semaphore.h'; do
-  if ! ed -s "$prefix/include/$file" <<< $',s/ __declspec (dllexport)//g\n,s/ __declspec (dllimport)//g\nw\nq' > >(build_log) 2>&1; then
+  if ! ed -s "$prefix/$target/include/$file" <<< $',s/ __declspec (dllexport)//g\n,s/ __declspec (dllimport)//g\nw\nq' > >(build_log) 2>&1; then
     mv "$file" "$file".orig
     sed 's/ __declspec (dllexport)//g;s/ __declspec (dllimport)//g' "$file".orig > "$file"
     rm -f "$file".orig
