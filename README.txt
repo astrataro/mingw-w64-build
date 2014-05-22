@@ -2,9 +2,9 @@ MinGW-w64 Build Scripts
 
 These build scripts are based on Zeranoe's MinGW-w64 build scripts (http://ffmpeg.zeranoe.com/blog/?cat=4)
 
-Differences to Zeranoe's Script v3.2.3:
+Differences to Zeranoe's Script v3.5.8:
 - New option to build for target OS
-- GCC 4.8.2
+- GCC 4.8.3
 
 Usage:
 - Build a Cross-Compiler Toolchain with the script
@@ -13,6 +13,9 @@ Usage:
 
 ---------------------------------------------------------
 Version History:
+r8 - 2014-05-22
+    Updated to Zeranoe's Script v3.5.8
+    GCC 4.8.3
 r7 - 2013-10-20
     Updated to Zeranoe's Script v3.5.0
     GCC 4.8.2
