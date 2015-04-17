@@ -1,6 +1,6 @@
 #!/bin/bash
 
-script_ver='3.6.0'
+script_ver='3.6.6'
 ################################################################################
 # MingGW-w64 Build Script
 ################################################################################
@@ -59,7 +59,7 @@ read -p \
 #                                                                              #
 #                            Press Enter to continue                           #
 #                                                                              #
-#                     Copyright (C) 2011-1013 Kyle Schwarz                     #
+#                     Copyright (C) 2011-1014 Kyle Schwarz                     #
 #                This program comes with ABSOLUTELY NO WARRANTY                #
 #                                                                              #
 ################################################################################"
@@ -67,21 +67,22 @@ read -p \
 
 # Variables
 working_dir="$(pwd)"
-detected_cpu_count="$(grep -c processor /proc/cpuinfo)"
+detected_cpu_count="$(grep -c processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu | tr -d '\n' 2>/dev/null)"
 uname_m="$(uname -m)"
 target_i686='i686-w64-mingw32'
 target_x86_64='x86_64-w64-mingw32'
 
 ## Versions
-mingw_w64_release_ver='3.1.0'
-gcc_release_ver='4.9.0'
-gcc_old_release_ver='4.8.3'
+mingw_w64_release_ver='3.3.0'
+gcc_release_ver='4.9.2'
+gcc_old_release_ver='4.8.4'
 mpfr_release_ver='3.1.2'
-mpc_release_ver='1.0.2'
-binutils_release_ver='2.24'
+mpc_release_ver='1.0.3'
+binutils_release_ver='2.25'
+binutils_snapshot_ver='2.24.51'
 gmp_release_ver='6.0.0a'
-isl_release_ver='0.11.1'
-cloog_release_ver='0.18.0'
+isl_release_ver='0.12.2'
+cloog_release_ver='0.18.1'
 pthreads_w32_release_ver='2-9-1'
 
 ## Locations
@@ -115,14 +116,14 @@ Compile Options:
   --default-configure         compile with default options for all unset options
   --allow-overwrite           allow overwrite if no updates are found
   --rebuild-all               rebuild all packages
-  --mingw-w64-ver=NUMBER      compile with MinGW-w64 VERSION ($mingw_w64_release_ver, svn)
+  --mingw-w64-ver=NUMBER      compile with MinGW-w64 VERSION ($mingw_w64_release_ver, git)
                               [$mingw_w64_release_ver]
   --cpu-count=NUMBER          use NUMBER of cores/threads to compile with (1-$detected_cpu_count,
                               max) [max]
   --binutils-ver=VERSION      compile with binutils VERSION (snapshot, $binutils_release_ver,
-                              cvs) [$binutils_release_ver]
+                              git) [$binutils_release_ver]
   --gcc-ver=VERSION           compile with GCC VERSION ($gcc_release_ver, $gcc_old_release_ver, svn)
-                              [$gcc_old_release_ver]
+                              [$gcc_release_ver]
   --pthreads-w32-ver=VERSION  compile with Pthreads-w32 VERSION ($pthreads_w32_release_ver, cvs)
                               [cvs]
   --gcc-langs=LANG1,LANG2     compile GCC with support for LANG (ada, c, c++,
@@ -136,6 +137,7 @@ Compile Options:
                               'build', 'source', and 'packages' directories will
                               be removed.
   --enable-gendef             compile the MinGW-w64 tools gendef.
+  --enable-widl               compile the Mingw-w64 tools widl
   --verbose                   show raw build output
 
 Report bugs to <kyle.r.schwarz@gmail.com>.
@@ -144,7 +146,7 @@ EOF
 
 print_error ()
 {
-  printf '\n\nError. See build.log for more details\n\n'
+  printf 'error\n\nSee build.log for more details.\n'
   exit 1
 }
 
@@ -178,9 +180,9 @@ return 1
 create_pkg_dirs () {
 local pkg_name="$1"
 mkdir -p "$pkg_name"
-cd "$pkg_name" || exit 1
+cd "$pkg_name" || print_error
 mkdir -p 'build' 'source'
-cd 'source' || exit 1
+cd 'source' || print_error
 }
 
 use_cpu_count () {
@@ -228,7 +230,7 @@ return 1
 build_progress ()
 {
 if [[ "$verbose" != 'yes' ]]; then
-  if [[ "$1" = 'Done' ]]; then
+  if [[ "$1" = 'done' ]]; then
     printf '%s\n' "$1"
     return 0
   fi
@@ -256,14 +258,14 @@ while [[ "$mingw_w64_ver_select" != [1-2] ]]; do
 cat <<EOF
 
 Which MinGW-w64 version would you like to build? You can set this option with: '--mingw-w64-ver=NUMBER', see --help for more information.
-  1. MinGW-w64 $mingw_w64_release_ver
-  2. MinGW-w64 SVN (default)
+  1. MinGW-w64 $mingw_w64_release_ver (default)
+  2. MinGW-w64 git
 EOF
 printf 'Choose which MinGW-w64 version would would like to build. [1-2]: '
 read mingw_w64_ver_select
 case "$mingw_w64_ver_select" in
   1 ) mingw_w64_ver="$mingw_w64_release_ver" ;;
-  2 ) mingw_w64_ver='svn' ;;
+  2 ) mingw_w64_ver='git' ;;
   * ) printf '\nYour selection was not valid, please try again.\n\n' ;;
 esac
 done
@@ -276,14 +278,14 @@ cat <<EOF
 Which Binutils version would you like to build? You can set this option with: '--binutils-ver=VERSION', see --help for more information.
   1. Binutils snapshot
   2. Binutils $binutils_release_ver (default)
-  3. Binutils cvs
+  3. Binutils git
 EOF
 printf 'Choose which Binutils version would would like to build. [1-2]: '
 read binutils_ver_select
 case "$binutils_ver_select" in
   1 ) binutils_ver="snapshot" ;;
   2 ) binutils_ver="$binutils_release_ver" ;;
-  3 ) binutils_ver='cvs' ;;
+  3 ) binutils_ver='git' ;;
   * ) printf '\nYour selection was not valid, please try again.\n\n' ;;
 esac
 done
@@ -294,8 +296,8 @@ while [[ "$gcc_ver_select" != [1-4] ]]; do
 cat <<EOF
 
 Which GCC version would you like to build? You can set this option with: '--gcc-ver=VERSION', see --help for more information.
-  1. GCC $gcc_release_ver
-  2. GCC $gcc_old_release_ver (default)
+  1. GCC $gcc_release_ver (default)
+  2. GCC $gcc_old_release_ver
   3. GCC $svn
 EOF
 printf 'Choose which GCC version would would like to build. [1-3]: '
@@ -316,7 +318,7 @@ if [[ "$enabled_langs" != *,* ]]; then
 fi
 
 case "$gcc_ver" in
-  * ) "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target"  "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-cloog="$cloog_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string --enable-lto  > >(build_log) 2>&1 || exit 1 ;;
+  * ) "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target"  "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-cloog="$cloog_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string --enable-lto  > >(build_log) 2>&1 || print_error ;;
 esac
 }
 
@@ -392,7 +394,6 @@ local num='0'
 for lang in "${all_langs[@]}"; do
   if var_in_array "$lang" "${enabled_langs[@]}" || [[ "${enabled_langs}" = 'all' ]]; then
     printf '  [*] %s\n' "${formated_langs[$num]}"
-  else
     printf '  [ ] %s\n' "${formated_langs[$num]}"
   fi
   ((num++))
@@ -445,7 +446,7 @@ if [[ -z "$binutils_ver" ]]; then
   binutils_ver="$binutils_release_ver"
 fi
 if [[ -z "$gcc_ver" ]]; then
-  gcc_ver="$gcc_old_release_ver"
+  gcc_ver="$gcc_release_ver"
 fi
 if [[ -z "$disable_nls" ]]; then
   disable_nls=('--disable-nls')
@@ -481,113 +482,119 @@ esac
 if [[ ! -f "$archive" ]]; then
   build_progress "$archive" 'Downloading'
   wget -nv -t 5 "$download_url" > >(build_log) 2>&1
-  build_progress 'Done'
+  build_progress 'done'
 fi
 
 if [[ ! -d "$package_name" ]]; then
   build_progress "$archive" 'Extracting'
   if "$archive_type" -d <"$archive" | pax -r ; then
-    build_progress 'Done'
+    build_progress 'done'
     return 0
   else
     rm -rf "$archive" "$package_name"
     build_progress "$archive" 'Downloading'
     wget -nv "$download_url" > >(build_log) 2>&1
-    build_progress 'Done'
+    build_progress 'done'
     build_progress "$archive" 'Extracting'
     "$archive_type" -d <"$archive" | pax -r
-    build_progress 'Done'
+    build_progress 'done'
   fi
 fi
 done
 
 if [[ ! -d "$package_name" ]]; then
-  exit 1
+  print_error
 fi
 }
 
 clean_build () {
 cd '..'
-rm -fr 'build' || exit 1
+rm -fr 'build' || print_error
 mkdir -p 'build'
-cd 'build' || exit 1
+cd 'build' || print_error
+}
+
+git_dl () {
+local pkg="$1"
+local git_url="$2"
+shift 2
+
+if cd "$pkg" 2>/dev/null; then
+  read -r _ orig_git_commit < <(git log --date=iso | head -1)
+  git pull> >(build_log) 2>&1 || print_error
+  read -r _ git_commit < <(git log --date=iso | head -1)
+  if [[ "$allow_overwrite" != 'yes' && "$orig_git_commit" = "$git_commit" &&  "$prefix_present" = 'yes' ]]; then
+    if ! yes_no_sel "$pkg is already the latest version, continue with the build anyway?"; then
+      exit 0
+    fi
+  fi
+else
+
+  build_progress "$pkg" 'Downloading'
+  git clone "$git_url" "$pkg-git" > >(build_log) 2>&1 || print_error
+  build_progress 'done'
+fi
 }
 
 build_winpthreads () {
-cd "$mingw_w64_build_dir" || exit 1
+cd "$mingw_w64_build_dir" || print_error
 rm -fr 'winpthreads '
 mkdir -p 'winpthreads'
-cd 'winpthreads' || exit 1
+cd 'winpthreads' || print_error
 local mingw_w64_target="$1"
 local mingw_w64_prefix="$2"
 shift 3
 build_progress 'winpthreads' 'Configuring'
-"../../source/mingw-w64-$mingw_w64_ver/mingw-w64-libraries/winpthreads/configure" --build="$system_type" --host="$mingw_w64_target" "${static_build[@]}" --prefix="$mingw_w64_prefix" > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+"../../source/mingw-w64-$mingw_w64_ver/mingw-w64-libraries/winpthreads/configure" --build="$system_type" --host="$mingw_w64_target" "${static_build[@]}" --prefix="$mingw_w64_prefix" > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
 build_progress 'winpthreads' 'Building'
-make > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
 build_progress 'winpthreads' 'Installing'
-make install > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make install > >(build_log) 2>&1 || print_error
+build_progress 'done'
 }
 
 build_binutils () {
-cd "$pkgs_dir" || exit 1
-create_pkg_dirs 'binutils' || exit 1
-if [[ "$binutils_ver" != 'cvs' ]]; then
+cd "$pkgs_dir" || print_error
+create_pkg_dirs 'binutils' || print_error
+if [[ "$binutils_ver" != 'git' ]]; then
   if [[ "$binutils_ver" = "snapshot" ]]; then
-    download_extract "ftp://sourceware.org/pub/binutils/snapshots/binutils.tar.bz2"
-    binutils_ver="$(find . -name binutils -type d)"; binutils_ver="${binutils_ver##*-}"; binutils_ver="${binutils_ver%%/*}"
+    download_extract "ftp://sourceware.org/pub/binutils/snapshots/binutils-$binutils_snapshot_ver.tar.bz2"
+    binutils_ver="$binutils_snapshot_ver"
   else
     download_extract "http://ftp.gnu.org/gnu/binutils/binutils-$binutils_ver.tar.bz2" "ftp://ftp.gnu.org/gnu/binutils/binutils-$binutils_ver.tar.bz2"
   fi
 else
-  if [[ -d 'binutils-cvs' ]]; then
-    cd 'binutils-cvs' || exit 1
-    read -r oldmd5 _ < <(md5sum './CVS/Entries')
-    build_progress 'binutils-cvs' 'Updating'
-    cvs update || exit 1
-    build_progress 'Done'
-    read -r newmd5 _ < <(md5sum './CVS/Entries')
-    if [[ "$oldmd5" != "$newmd5" ]]; then
-      rm -rf "$pkgs_dir/touch-files/binutils/binutils-cvs-$uname_m."*
-    fi
-    cd '..'
-  else
-    build_progress 'binutils-cvs' 'Downloading'
-    cvs -d :pserver:anoncvs@sourceware.org:/cvs/src checkout binutils > >(build_log) 2>&1 || exit 1
-    build_progress 'Done'
-    mv 'src' 'binutils-cvs'
-  fi
+  git_dl "binutils" "git://sourceware.org/git/binutils-gdb.git"
 fi
 
-cd '../build' || exit 1
+cd '../build' || print_error
 
 mkdir -p "$mingw_w64_target"
-cd "$mingw_w64_target" || exit 1
+cd "$mingw_w64_target" || print_error
 
 if ! check_pkg_touch_success 'binutils' "$binutils_ver" 'configure' "$mingw_w64_target"; then
   cd '..'
-  rm -rf "$mingw_w64_target" || exit 1
+  rm -rf "$mingw_w64_target" || print_error
   mkdir "$mingw_w64_target"
-  cd "$mingw_w64_target" || exit 1
+  cd "$mingw_w64_target" || print_error
   build_progress 'binutils' 'Configuring'
-  CC=gcc "../../source/binutils-$binutils_ver/configure" --build="$system_type" --target="$mingw_w64_target" "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --with-sysroot="$mingw_w64_prefix" --prefix="$mingw_w64_prefix" > >(build_log) 2>&1 || exit 1
-  build_progress 'Done'
+  CC=gcc "../../source/binutils-$binutils_ver/configure" --build="$system_type" --target="$mingw_w64_target" "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --with-sysroot="$mingw_w64_prefix" --prefix="$mingw_w64_prefix" > >(build_log) 2>&1 || print_error
+  build_progress 'done'
 fi
 pkg_touch_success 'binutils' "$binutils_ver" 'configure' "$mingw_w64_target"
 if ! check_pkg_touch_success 'binutils' "$binutils_ver" 'compile' "$mingw_w64_target"; then
   build_progress 'binutils' 'Building'
-  make -j "$cpu_count" > >(build_log) 2>&1 || exit 1
-  build_progress 'Done'
+  make -j "$cpu_count" > >(build_log) 2>&1 || print_error
+  build_progress 'done'
 fi
 pkg_touch_success 'binutils' "$binutils_ver" 'compile' "$mingw_w64_target"
 build_progress 'binutils' 'Installing'
-make install > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make install > >(build_log) 2>&1 || print_error
+build_progress 'done'
 }
 
 std_compile ()
@@ -601,8 +608,8 @@ std_compile ()
     return
   fi
 
-  cd "$pkgs_dir" || exit 1
-  create_pkg_dirs "$pkg" || exit 1
+  cd "$pkgs_dir" || print_error
+  create_pkg_dirs "$pkg" || print_error
 
   download_extract "$url"
 
@@ -610,21 +617,21 @@ std_compile ()
     clean_build
     build_progress "$pkg" 'Configuring'
     $@ > >(build_log) 2>&1 || print_error
-    build_progress 'Done'
+    build_progress 'done'
   fi
   pkg_touch_success "$pkg" "$ver" 'configure' "$uname_m"
 
   if ! check_pkg_touch_success "$pkg" "$ver" 'compile' "$uname_m"; then
     build_progress "$pkg" 'Building'
     make -j "$cpu_count" > >(build_log) 2>&1 || print_error
-    build_progress 'Done'
+    build_progress 'done'
   fi
   pkg_touch_success "$pkg" "$ver" 'compile' "$uname_m"
 
   if ! check_pkg_touch_success "$pkg" "$ver" 'install' "$uname_m"; then
     build_progress "$pkg" 'Installing'
     make install > >(build_log) 2>&1 || print_error
-    build_progress 'Done'
+    build_progress 'done'
   fi
   pkg_touch_success "$pkg" "$ver" 'install' "$uname_m"
 }
@@ -636,37 +643,37 @@ shift 2
 if [[ "$rebuild" = 'yes' ]]; then
   rm -rf "$pkgs_dir/touch-files"
 fi
-cd "$working_dir" || exit 1
+cd "$working_dir" || print_error
 rm -fr "$mingw_w64_prefix"
-cd 'pkgs' || exit 1
+cd 'pkgs' || print_error
 mkdir -p 'touch-files'
 
 build_binutils
 
 export PATH="$mingw_w64_prefix/bin:$PATH"
-cd "$mingw_w64_build_dir" || exit 1
+cd "$mingw_w64_build_dir" || print_error
 clean_build
 mkdir -p 'headers' 'crt'
-cd 'headers' || exit 1
+cd 'headers' || print_error
 
 build_progress 'mingw-w64 headers' 'Configuring'
-"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-headers/configure" --enable-sdk=all --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix" > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-headers/configure" --enable-sdk=all --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix" > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
 build_progress 'mingw-w64 headers' 'Installing'
-make install > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make install > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
-cd "$mingw_w64_prefix" || exit 1
+cd "$mingw_w64_prefix" || print_error
 ln -s "./$mingw_w64_target" './mingw'
 if [[ ! -d "./$mingw_w64_target/include" ]]; then
-  cd "./$mingw_w64_target" || exit 1
+  cd "./$mingw_w64_target" || print_error
   ln -s '../include' './include'
-  cd "$mingw_w64_prefix" || exit 1
+  cd "$mingw_w64_prefix" || print_error
 fi
 
 case "$gcc_ver" in
-  $gcc_release_ver ) cloog_ver='0.18.1'; isl_ver='0.12.2' ;;
+  $gcc_release_ver ) cloog_ver="$cloog_release_ver"; isl_ver="$isl_release_ver" ;;
   $gcc_old_release_ver ) cloog_ver='0.18.0';  isl_ver='0.11.1' ;;
 esac
 
@@ -699,97 +706,118 @@ std_compile 'cloog' "$cloog_ver" "ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog
 export CC="$old_cc"
 
 # Build GCC (GCC only)
-cd "$pkgs_dir" || exit 1
+cd "$pkgs_dir" || print_error
 create_pkg_dirs 'gcc'
-cd "$pkgs_dir/gcc/source" || exit 1
+cd "$pkgs_dir/gcc/source" || print_error
 if [[ "$gcc_ver" != 'svn' ]]; then
   download_extract "http://ftp.gnu.org/gnu/gcc/gcc-$gcc_ver/gcc-$gcc_ver.tar.bz2" "ftp://ftp.gnu.org/gnu/gcc/gcc-$gcc_ver/gcc-$gcc_ver.tar.bz2"
 else
-  if [[ -d 'gcc-svn' ]]; then
-    cd 'gcc-svn' || exit 1
+  if cd 'gcc-svn' 2>/dev/null; then
     build_progress 'gcc-svn' 'Updating'
-    svn update > >(build_log) 2>&1 || exit 1
-    build_progress 'Done'
+    svn update > >(build_log) 2>&1 || print_error
+    build_progress 'done'
     cd '..'
   else
     build_progress 'gcc-svn' 'Downloading'
-    svn checkout svn://gcc.gnu.org/svn/gcc/trunk gcc-svn > >(build_log) 2>&1 || exit 1
-    build_progress 'Done'
+    svn checkout svn://gcc.gnu.org/svn/gcc/trunk gcc-svn > >(build_log) 2>&1 || print_error
+    build_progress 'done'
   fi
 fi
 
 clean_build
 build_progress 'gcc' 'Configuring'
-configure_gcc "$gcc_ver" || exit 1
-build_progress 'Done'
+configure_gcc "$gcc_ver" || print_error
+build_progress 'done'
 
 build_progress 'all-gcc' 'Building'
-make -j "$cpu_count" all-gcc > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make -j "$cpu_count" all-gcc > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
 build_progress 'gcc' 'Installing'
-make install-gcc > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make install-gcc > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
 # Build mingw-w64 CRT 
-cd "$mingw_w64_build_dir/crt" || exit 1
+cd "$mingw_w64_build_dir/crt" || print_error
 
 build_progress 'mingw-w64 crt' 'Configuring'
-"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-crt/configure" --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-crt/configure" --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
 build_progress 'mingw-w64 crt' 'Building'
-make -j "$cpu_count" > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+if [[ "$OSTYPE" = "darwin"* ]]; then
+  make > >(build_log) 2>&1 || print_error
+else
+  make -j "$cpu_count" > >(build_log) 2>&1 || print_error
+fi
+build_progress 'done'
 
 build_progress 'mingw-w64 crt' 'Installing'
-make install > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make install > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
-cd "$mingw_w64_prefix" || exit 1
+cd "$mingw_w64_prefix" || print_error
 mv "./$mingw_w64_target/lib/"* './lib/'
 rm -fr "./$mingw_w64_target/lib"
 cd "./$mingw_w64_target"
 ln -s '../lib' './lib'
 
 # Build GCC
-cd "$pkgs_dir/gcc/build" || exit 1
+cd "$pkgs_dir/gcc/build" || print_error
 build_progress 'gcc target-libgcc' 'Building'
-make -j "$cpu_count" all-target-libgcc > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make -j "$cpu_count" all-target-libgcc > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
 build_progress 'gcc target-libgcc' 'Installing'
-make -j "$cpu_count" install-target-libgcc > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make -j "$cpu_count" install-target-libgcc > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
 build_progress 'gcc' 'Building'
-make -j "$cpu_count" > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make -j "$cpu_count" > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
 build_progress 'gcc' 'Installing'
-make install-strip > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make install-strip > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
 if [[ "$thread_lib" != 'disable' ]]; then
-  build_thread_lib "$mingw_w64_target" "$mingw_w64_prefix" || exit 1
+  build_thread_lib "$mingw_w64_target" "$mingw_w64_prefix" || print_error
 fi
 
 if [[ "$enable_gendef" = 'yes' ]]; then
-  cd "$mingw_w64_build_dir" || exit 1
+  cd "$mingw_w64_build_dir" || print_error
   rm -fr 'gendef'
   mkdir 'gendef'
-  cd 'gendef' || exit 1
+  cd 'gendef' || print_error
   build_progress 'gendef' 'Configuring'
-  "$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-tools/gendef/configure" --build="$system_type" --prefix="$mingw_w64_prefix" > >(build_log) 2>&1 || exit 1
-  build_progress 'Done'
+  "$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-tools/gendef/configure" --build="$system_type" --prefix="$mingw_w64_prefix" --target="$mingw_w64_target" > >(build_log) 2>&1 || print_error
+  build_progress 'done'
 
   build_progress 'gendef' 'Building'
-  make > >(build_log) 2>&1 || exit 1
-  build_progress 'Done'
+  make > >(build_log) 2>&1 || print_error
+  build_progress 'done'
 
   build_progress 'gendef' 'Installing'
-  make install > >(build_log) 2>&1 || exit 1
-  build_progress 'Done'
+  make install > >(build_log) 2>&1 || print_error
+  build_progress 'done'
+fi
+
+if [[ "$enable_widl" = 'yes' ]]; then
+  cd "$mingw_w64_build_dir" || print_error
+  rm -fr 'widl'
+  mkdir 'widl'
+  cd 'widl' || print_error
+  build_progress 'widl' 'Configuring'
+  "$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-tools/widl/configure" --build="$system_type" --prefix="$mingw_w64_prefix" --target="$mingw_w64_target" > >(build_log) 2>&1 || print_error
+  build_progress 'done'
+
+  build_progress 'widl' 'Building'
+  make > >(build_log) 2>&1 || print_error
+  build_progress 'done'
+
+  build_progress 'widl' 'Installing'
+  make install > >(build_log) 2>&1 || print_error
+  build_progress 'done'
 fi
 
 return 0
@@ -826,29 +854,16 @@ esac
 shift
 
 mkdir -p 'pkgs' 'source' 'build'
-cd 'pkgs' || exit 1
+cd 'pkgs' || print_error
 rm -fr 'config.guess'
 build_progress 'config.guess' 'Downloading'
 wget -nv -O config.guess 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' > >(build_log) 2>&1 || { ping -c 1 git.savannah.gnu.org >/dev/null 2>&1 || printf '\nsavannah.gnu.org seems to be offline right now and is needed to download the file "config.guess", please try again later.\n\n'; rm -f 'config.guess' && exit 1; }
-build_progress 'Done'
+build_progress 'done'
 system_type="$(sh config.guess)"
 
-cd "$mingw_w64_source_dir" || exit 1
-if [[ "$mingw_w64_ver" = 'svn' ]]; then
-  if [[ -d 'mingw-w64-svn' ]]; then
-    cd 'mingw-w64-svn' || exit 1
-    svn_ver_before=$(sed -n 4p '.svn/entries')
-    svn update || exit 1
-    svn_ver_after=$(sed -n 4p '.svn/entries')
-    if [[ "$allow_overwrite" != 'yes' && "$svn_ver_before" = "$svn_ver_after" &&  "$prefix_present" = 'yes' ]]; then
-      if ! yes_no_sel "MinGW-w64 is already the latest version, continue with the build anyway? You can set this option with: '--allow-overwrite', see '--help' for more information."; then
-        exit 0
-      fi
-    fi
-  else
-
-    svn checkout  svn://svn.code.sf.net/p/mingw-w64/code/trunk mingw-w64-svn || exit 1
-  fi
+cd "$mingw_w64_source_dir" || print_error
+if [[ "$mingw_w64_ver" = 'git' ]]; then
+  git_dl "mingw-w64" "git://git.code.sf.net/p/mingw-w64/mingw-w64"
 else
   if [[ -d "mingw-w64-$mingw_w64_release_ver" && "$allow_overwrite" != 'yes' &&  "$prefix_present" = 'yes' ]]; then
     if ! yes_no_sel "MinGW-w64 is already the latest version, continue with the build anyway? You can set this option with: '--allow-overwrite', see '--help' for more information."; then
@@ -859,18 +874,18 @@ else
   if [[ ! -d "mingw-w64-$mingw_w64_release_ver" || ! -f "mingw-w64-$mingw_w64_release_ver.tar.bz2" ]]; then
     rm -f "mingw-w64-$mingw_w64_release_ver.tar.bz2" "mingw-w64-$mingw_w64_release_ver"
     build_progress "mingw-w64-$mingw_w64_release_ver.tar.bz2" 'Downloading'
-    wget -nv -O "mingw-w64-$mingw_w64_release_ver.tar.bz2" http://downloads.sourceforge.net/project/mingw-w64/mingw-w64/mingw-w64-release/mingw-w64-v${mingw_w64_release_ver}.tar.bz2 > >(build_log) 2>&1 || exit 1
-    build_progress 'Done'
+    wget -nv -O "mingw-w64-$mingw_w64_release_ver.tar.bz2" http://downloads.sourceforge.net/project/mingw-w64/mingw-w64/mingw-w64-release/mingw-w64-v${mingw_w64_release_ver}.tar.bz2 > >(build_log) 2>&1 || print_error
+    build_progress 'done'
     build_progress "mingw-w64-$mingw_w64_release_ver.tar.bz2" 'Extracting'
     bzip2 -d <"mingw-w64-$mingw_w64_release_ver.tar.bz2" | pax -r
-    build_progress 'Done'
+    build_progress 'done'
     mv "mingw-w64-v$mingw_w64_release_ver" "mingw-w64-$mingw_w64_release_ver"
   fi
 fi
 }
 
 check_missing_packages () {
-local check_packages=('bison' 'm4' 'flex' 'git' 'svn' 'gcc' 'yasm' 'cvs' 'g++' 'make' 'xz' 'bzip2' 'pax' 'gunzip')
+local check_packages=('bison' 'm4' 'flex' 'git' 'svn' 'gcc' 'yasm' 'cvs' 'g++' 'make' 'xz' 'bzip2' 'pax' 'gunzip' 'wget')
 for package in "${check_packages[@]}"; do
   command -v "$package" >/dev/null || missing_packages=("$package" "${missing_packages[@]}")
 done
@@ -878,7 +893,7 @@ done
 if [[ -n "${missing_packages[@]}" ]]; then
   printf '\nCould not find the following packages: %s\n' "${missing_packages[*]}"
   printf 'Install the missing packages before running this script.\n\n'
- exit 1
+  exit 1
 fi
 }
 
@@ -892,51 +907,50 @@ target="$1"
 prefix="$2"
 
 shift 2
-cd "$pkgs_dir" || exit 1
-create_pkg_dirs 'pthread-w32' || exit 1
+cd "$pkgs_dir" || print_error
+create_pkg_dirs 'pthread-w32' || print_error
 
 if [[ "$pthreads_w32_ver" = "$pthreads_w32_release_ver" ]]; then
   download_extract "ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-$pthreads_w32_release_ver-release.tar.gz"
   if [[ ! -d "pthreads-w32-$pthreads_w32_release_ver" ]]; then
-    mv "pthreads-w32-$pthreads_w32_release_ver-release" "pthreads-w32-$pthreads_w32_release_ver" || exit 1
+    mv "pthreads-w32-$pthreads_w32_release_ver-release" "pthreads-w32-$pthreads_w32_release_ver" || print_error
   fi
 else
   unset oldmd5 newmd5
-  if [[ -d 'pthreads-w32-cvs' ]]; then
-    cd 'pthreads-w32-cvs' || exit 1
+  if cd 'pthreads-w32-cvs' 2>/dev/null; then
     build_progress 'pthreads-w32 cvs' 'Updating'
-    cvs update > >(build_log) 2>&1 || exit 1
-    build_progress 'Done'
+    cvs update > >(build_log) 2>&1 || print_error
+    build_progress 'done'
     cd '..'
   else
     build_progress 'pthreads-w32 cvs' 'Downloading'
-    cvs -d :pserver:anonymous@sourceware.org:/cvs/pthreads-win32 checkout pthreads > >(build_log) 2>&1 || exit 1
-    build_progress 'Done'
+    cvs -d :pserver:anonymous@sourceware.org:/cvs/pthreads-win32 checkout pthreads > >(build_log) 2>&1 || print_error
+    build_progress 'done'
     mv 'pthreads' 'pthreads-w32-cvs'
   fi
 fi
 
-cd "pthreads-w32-$pthreads_w32_ver" || exit 1
-make realclean > >(build_log) 2>&1 || exit 1
+cd "pthreads-w32-$pthreads_w32_ver" || print_error
+make realclean > >(build_log) 2>&1 || print_error
 if [[ "${static_build[@]}" != *"disable-shared"* ]]; then
   build_progress 'pthreads-w32 shared' 'Building'
-  make CROSS="$target-" realclean GC ARCH="$pthread_arch" > >(build_log) 2>&1 || exit 1
-  build_progress 'Done'
+  make CROSS="$target-" realclean GC ARCH="$pthread_arch" > >(build_log) 2>&1 || print_error
+  build_progress 'done'
 
-  cp 'pthreadGC2.dll' "$prefix/lib/" || exit 1
-  cd "$prefix/lib" || exit 1
+  cp 'pthreadGC2.dll' "$prefix/lib/" || print_error
+  cd "$prefix/lib" || print_error
   ln -s "./pthreadGC2.dll" "./libpthread.dll"
-  cd "$pkgs_dir/pthread-w32/source/pthreads-w32-$pthreads_w32_ver" || exit 1
+  cd "$pkgs_dir/pthread-w32/source/pthreads-w32-$pthreads_w32_ver" || print_error
 fi
 build_progress 'pthreads-w32 static' 'Building'
-make CROSS="$target-" realclean GC-static ARCH="$pthread_arch" > >(build_log) 2>&1 || exit 1
-build_progress 'Done'
+make CROSS="$target-" realclean GC-static ARCH="$pthread_arch" > >(build_log) 2>&1 || print_error
+build_progress 'done'
 
-cp 'libpthreadGC2.a' "$prefix/lib/" || exit 1
-cp 'pthread.h' 'sched.h' 'semaphore.h' "$prefix/include/" || exit 1
-cd "$prefix/lib" || exit 1
+cp 'libpthreadGC2.a' "$prefix/lib/" || print_error
+cp 'pthread.h' 'sched.h' 'semaphore.h' "$prefix/include/" || print_error
+cd "$prefix/lib" || print_error
 ln -s "./libpthreadGC2.a" "./libpthread.a"
-cd '../include' || exit 1
+cd '../include' || print_error
 
 for file in 'pthread.h' 'sched.h' 'semaphore.h'; do
   if ! ed -s "$prefix/include/$file" <<< $',s/ __declspec (dllexport)//g\n,s/ __declspec (dllimport)//g\nw\nq' > >(build_log) 2>&1; then
@@ -962,10 +976,11 @@ esac
 completed_build () {
 local arch="$1"
 case "$arch" in
-  'win32' ) mingw_w64_path_prefix="$mingw_w64_i686_prefix" ;;
-  'win64' ) mingw_w64_path_prefix="$mingw_w64_x86_64_prefix" ;;
+  multi ) local new_path="$mingw_w64_i686_prefix/bin:$mingw_w64_x86_64_prefix/bin";;
+  win32 ) local new_path="$mingw_w64_i686_prefix/bin";;
+  win64 ) local new_path="$mingw_w64_x86_64_prefix/bin";;
 esac
-printf 'The MinGW-w64 bin directory needs to be added to the PATH variable so the system can find it, for %s this can be done with: export PATH="%s/bin:$PATH"\n' "${arch^}" "$mingw_w64_path_prefix"
+printf 'To add MinGW-w64 to the PATH variable run: export PATH="%s:$PATH"\n' "$new_path"
 }
 
 no_errors='MinGW-w64 has been built without errors.'
@@ -986,12 +1001,18 @@ if [[ "$arch" = 'multi' ]]; then
   if [[ "$enable_gendef" = 'yes' ]]; then
     total_steps=$((total_steps+6))
   fi
+  if [[ "$enable_widl" = 'yes' ]]; then
+    total_steps=$((total_steps+6))
+  fi
 else
   if [[ "${static_build[@]}" = *"disable-shared"* ]]; then
     total_steps=$((total_steps-1))
   fi
 
   if [[ "$enable_gendef" = 'yes' ]]; then
+    total_steps=$((total_steps+3))
+  fi
+  if [[ "$enable_widl" = 'yes' ]]; then
     total_steps=$((total_steps+3))
   fi
 fi
@@ -1001,32 +1022,27 @@ build_mingw_w64_toolchain () {
 current_step='1'
 local arch="$1"
 calculate_steps "$arch"
-check_missing_packages || exit 1
+check_missing_packages || print_error
 if [[ -z "$build_type" || -z "$mingw_w64_ver" || -z "$binutils_ver" || -z "$gcc_ver" || -z "$enabled_langs" ]]; then
-  configure_build_fn || exit 1
+  configure_build_fn || print_error
 fi
 if [[ -z "$cpu_count" ]]; then
   use_cpu_count
 fi
-download_source "$arch" || exit 1
+download_source "$arch" || print_error
 case "$arch" in
-  'multi' ) build_mingw_w64 "$target_i686" "$mingw_w64_i686_prefix" && build_mingw_w64 "$target_x86_64" "$mingw_w64_x86_64_prefix" || exit 1 ;;
-  'win32' ) build_mingw_w64 "$target_i686" "$mingw_w64_i686_prefix" || exit 1 ;;
-  'win64' ) build_mingw_w64 "$target_x86_64" "$mingw_w64_x86_64_prefix" || exit 1 ;;
+  'multi' ) build_mingw_w64 "$target_i686" "$mingw_w64_i686_prefix" && build_mingw_w64 "$target_x86_64" "$mingw_w64_x86_64_prefix" || print_error ;;
+  'win32' ) build_mingw_w64 "$target_i686" "$mingw_w64_i686_prefix" || print_error ;;
+  'win64' ) build_mingw_w64 "$target_x86_64" "$mingw_w64_x86_64_prefix" || print_error ;;
 esac
 clean_build_fn
 printf '\n\n%s\n' "$no_errors"
-if [[ "$arch" = "multi" ]]; then
-  completed_build 'win32'
-  completed_build 'win64'
-else
-  completed_build "$1"
-fi
+completed_build "$arch"
 }
 
 test_opt () {
 test_valid_opt 'build_type' 'win32' 'win64' 'multi'
-test_valid_opt 'mingw_w64_ver' "$mingw_w64_release_ver" 'svn'
+test_valid_opt 'mingw_w64_ver' "$mingw_w64_release_ver" 'git'
 test_valid_opt 'thread_lib' 'winpthreads' 'pthreads-w32' 'disable'
 test_valid_opt 'pthreads_w32_ver' "$pthreads_w32_release_ver" 'cvs'
 if [[ -n "$pthreads_w32_ver" ]]; then
@@ -1035,7 +1051,7 @@ fi
 if [[ -n "$cpu_count_opt" ]]; then
   check_cpu_count_optarg
 fi
-test_valid_opt 'binutils_ver' "$binutils_release_ver" "snapshot" 'cvs'
+test_valid_opt 'binutils_ver' "$binutils_release_ver" "snapshot" 'git'
 if ! command -v makeinfo >/dev/null; then
   printf 'makeinfo is needed to compile binutils and will need be be installed. On Debian/Ubuntu it is part of the "texinfo" software package.\n'
   exit 1
@@ -1045,12 +1061,12 @@ test_valid_opt 'gcc_ver' "$gcc_release_ver" "$gcc_old_release_ver" 'svn'
 
 check_cpu_count_optarg () {
 if [[ "$cpu_count_opt" = "max" ]]; then
-  cpu_count="$(grep -c processor /proc/cpuinfo)"
+  cpu_count="$detected_cpu_count"
   return 0
 fi
 
-if [[ "$cpu_count_opt" -gt "$(grep -c processor /proc/cpuinfo)" ]]; then
-  if ! yes_no_sel "The input number of cores/threads was higher than the number detected ($(grep -c processor /proc/cpuinfo) were detected). Trying to use more cores/threads than your CPU has can cause your system to crash. Are you sure you want to continue?"; then
+if [[ "$cpu_count_opt" -gt "$detected_cpu_count" ]]; then
+  if ! yes_no_sel "The input number of cores/threads was higher than the number detected ($detected_cpu_count were detected). Trying to use more cores/threads than your CPU has can cause your system to crash. Are you sure you want to continue?"; then
     exit 1
   fi
 fi
@@ -1058,7 +1074,7 @@ cpu_count="$cpu_count_opt"
 }
 
 wipe () {
-if yes_no_sel "Are you sure you want to remove all MinGW-w64 files? Files/directories: 'build' 'build.log' 'mingw-w64-i686' 'mingw-w64-x86_64' 'pkgs' 'source' will be removed."; then
+if yes_no_sel "Are you sure you want to remove all MinGW-w64 files? Files/directories 'build' 'build.log' 'mingw-w64-i686' 'mingw-w64-x86_64' 'pkgs' 'source' will be removed."; then
   rm -fr 'build' 'build.log' 'mingw-w64-i686' 'mingw-w64-x86_64' 'pkgs' 'source'
 fi
 
@@ -1145,6 +1161,7 @@ while true; do
     --threads=* ) thread_lib="${1#*=}"; shift ;;
     --clean-build ) clean_build='yes'; shift ;;
     --enable-gendef ) enable_gendef='yes';  shift ;;
+    --enable-widl ) enable_widl='yes'; shift ;;
     --verbose ) verbose='yes'; shift ;;
     wipe ) wipe; shift ;;
     -- ) shift; break ;;
