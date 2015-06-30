@@ -76,15 +76,14 @@ gcc_host=''
 
 ## Versions
 mingw_w64_release_ver='4.0.2'
-gcc_release_ver='4.9.3'
-gcc_old_release_ver='4.8.4'
+gcc_release_ver='5.1.0'
+gcc_old_release_ver='4.9.3'
 mpfr_release_ver='3.1.3'
 mpc_release_ver='1.0.3'
 binutils_release_ver='2.25'
 binutils_snapshot_ver='2.24.51'
 gmp_release_ver='6.0.0a'
-isl_release_ver='0.12.2'
-cloog_release_ver='0.18.1'
+isl_release_ver='0.14'
 pthreads_w32_release_ver='2-9-1'
 
 ## Locations
@@ -320,7 +319,8 @@ if [[ "$enabled_langs" != *,* ]]; then
 fi
 
 case "$gcc_ver" in
-  * ) CC=$gcc "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" $gcc_host "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-cloog="$cloog_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string --enable-lto  > >(build_log) 2>&1 || print_error ;;
+  $gcc_old_release_ver ) CC=$gcc "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" $gcc_host "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-cloog="$cloog_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string --enable-lto  > >(build_log) 2>&1 || print_error ;;
+  * ) CC=$gcc "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" $gcc_host "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string --enable-lto  > >(build_log) 2>&1 || print_error ;;
 esac
 }
 
@@ -670,8 +670,8 @@ cd "$mingw_w64_prefix" || print_error
 ln -s "./$mingw_w64_target" './mingw'
 
 case "$gcc_ver" in
-  $gcc_release_ver ) cloog_ver="$cloog_release_ver"; isl_ver="$isl_release_ver" ;;
-  $gcc_old_release_ver ) cloog_ver='0.18.0';  isl_ver='0.11.1' ;;
+  $gcc_release_ver ) isl_ver="$isl_release_ver" ;;
+  $gcc_old_release_ver ) cloog_ver='0.18.1';  isl_ver='0.12.2' ;;
 esac
 
 mpfr_prefix="$pkgs_dir/mpfr/mpfr-$mpfr_release_ver-$uname_m"
@@ -698,7 +698,9 @@ std_compile 'mpc' "$mpc_release_ver" "http://ftp.gnu.org/gnu/mpc/mpc-$mpc_releas
 std_compile 'isl' "$isl_ver" "ftp://gcc.gnu.org/pub/gcc/infrastructure/isl-$isl_ver.tar.bz2" "../source/isl-$isl_ver/configure" --prefix="$isl_prefix" --build="$system_type" $gcc_host --enable-static --disable-shared --with-gmp-prefix="$gmp_prefix" --with-piplib=no --with-clang=no
 
 #build cloog
-std_compile 'cloog' "$cloog_ver" "ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-$cloog_ver.tar.gz" "../source/cloog-$cloog_ver/configure" --prefix="$cloog_prefix" --build="$system_type" $gcc_host --enable-static --disable-shared --with-bits=gmp --with-isl=bundled --with-gmp-prefix="$gmp_prefix"
+if [[ "$gcc_ver" = "$gcc_old_release_ver" ]]; then
+  std_compile 'cloog' "$cloog_ver" "ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-$cloog_ver.tar.gz" "../source/cloog-$cloog_ver/configure" --prefix="$cloog_prefix" --build="$system_type" $gcc_host --enable-static --disable-shared --with-bits=gmp --with-isl=bundled --with-gmp-prefix="$gmp_prefix"
+fi
 
 export CC="$old_cc"
 
