@@ -655,7 +655,7 @@ mkdir -p 'headers' 'crt'
 cd 'headers' || print_error
 
 build_progress 'mingw-w64 headers' 'Configuring'
-"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-headers/configure" --enable-sdk=all --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix/$mingw_w64_target" > >(build_log) 2>&1 || print_error
+"$mingw_w64_source_dir/mingw-w64-$mingw_w64_ver/mingw-w64-headers/configure" --enable-sdk=all --enable-secure-api --build="$system_type" --host="$mingw_w64_target" --prefix="$mingw_w64_prefix/$mingw_w64_target" > >(build_log) 2>&1 || print_error
 build_progress 'done'
 
 build_progress 'mingw-w64 headers' 'Installing'
