@@ -873,6 +873,11 @@ else
     bzip2 -d <"mingw-w64-$mingw_w64_release_ver.tar.bz2" | pax -r
     build_progress 'done'
     mv "mingw-w64-v$mingw_w64_release_ver" "mingw-w64-$mingw_w64_release_ver"
+
+    build_progress "mingw-w64-$mingw_w64_release_ver" 'Patching'
+    wget -nv http://files.1f0.de/mingw/patches/mingw-w64-4.0.4-fix-mkstemp.patch > >(build_log) 2>&1 || print_error
+    patch -p0 -d "mingw-w64-$mingw_w64_release_ver" < mingw-w64-4.0.4-fix-mkstemp.patch > >(build_log) 2>&1 || print_error
+    build_progress 'done'
   fi
 fi
 }
