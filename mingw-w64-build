@@ -1,10 +1,10 @@
 #!/bin/bash
 
-script_ver='3.6.6'
+script_ver='3.6.7'
 ################################################################################
 # MingGW-w64 Build Script
 ################################################################################
-# Copyright (C) 2011-2014  Kyle Schwarz
+# Copyright (C) 2011-2015  Kyle Schwarz
 # 
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -59,7 +59,7 @@ read -p \
 #                                                                              #
 #                            Press Enter to continue                           #
 #                                                                              #
-#                     Copyright (C) 2011-1014 Kyle Schwarz                     #
+#                     Copyright (C) 2011-1015 Kyle Schwarz                     #
 #                This program comes with ABSOLUTELY NO WARRANTY                #
 #                                                                              #
 ################################################################################"
@@ -73,16 +73,14 @@ target_i686='i686-w64-mingw32'
 target_x86_64='x86_64-w64-mingw32'
 
 ## Versions
-mingw_w64_release_ver='3.3.0'
-gcc_release_ver='4.9.2'
-gcc_old_release_ver='4.8.4'
-mpfr_release_ver='3.1.2'
+mingw_w64_release_ver='4.0.4'
+gcc_release_ver='5.2.0'
+gcc_old_release_ver='4.9.3'
+mpfr_release_ver='3.1.3'
 mpc_release_ver='1.0.3'
-binutils_release_ver='2.25'
-binutils_snapshot_ver='2.24.51'
+binutils_release_ver='2.25.1'
 gmp_release_ver='6.0.0a'
-isl_release_ver='0.12.2'
-cloog_release_ver='0.18.1'
+isl_release_ver='0.14'
 pthreads_w32_release_ver='2-9-1'
 
 ## Locations
@@ -120,10 +118,10 @@ Compile Options:
                               [$mingw_w64_release_ver]
   --cpu-count=NUMBER          use NUMBER of cores/threads to compile with (1-$detected_cpu_count,
                               max) [max]
-  --binutils-ver=VERSION      compile with binutils VERSION (snapshot, $binutils_release_ver,
-                              git) [$binutils_release_ver]
+  --binutils-ver=VERSION      compile with binutils VERSION ($binutils_release_ver, git)
+                              [$binutils_release_ver]
   --gcc-ver=VERSION           compile with GCC VERSION ($gcc_release_ver, $gcc_old_release_ver, svn)
-                              [$gcc_release_ver]
+                              [$gcc_old_release_ver]
   --pthreads-w32-ver=VERSION  compile with Pthreads-w32 VERSION ($pthreads_w32_release_ver, cvs)
                               [cvs]
   --gcc-langs=LANG1,LANG2     compile GCC with support for LANG (ada, c, c++,
@@ -276,16 +274,14 @@ while [[ "$binutils_ver_select" != [1-3] ]]; do
 cat <<EOF
 
 Which Binutils version would you like to build? You can set this option with: '--binutils-ver=VERSION', see --help for more information.
-  1. Binutils snapshot
-  2. Binutils $binutils_release_ver (default)
-  3. Binutils git
+  1. Binutils $binutils_release_ver (default)
+  2. Binutils git
 EOF
 printf 'Choose which Binutils version would would like to build. [1-2]: '
 read binutils_ver_select
 case "$binutils_ver_select" in
-  1 ) binutils_ver="snapshot" ;;
-  2 ) binutils_ver="$binutils_release_ver" ;;
-  3 ) binutils_ver='git' ;;
+  1 ) binutils_ver="$binutils_release_ver" ;;
+  2 ) binutils_ver='git' ;;
   * ) printf '\nYour selection was not valid, please try again.\n\n' ;;
 esac
 done
@@ -318,7 +314,8 @@ if [[ "$enabled_langs" != *,* ]]; then
 fi
 
 case "$gcc_ver" in
-  * ) "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target"  "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix"  --with-host-libstdcxx="-lstdc++ ${gcc_stdcxx_flags[*]}" --with-cloog="$cloog_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-threads=win32 --enable-fully-dynamic-string --enable-lto  > >(build_log) 2>&1 || print_error ;;
+  $gcc_old_release_ver ) "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix" --with-host-libstdcxx="-lstdc++" --with-cloog="$cloog_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-fully-dynamic-string --enable-lto  > >(build_log) 2>&1 ;;
+  $gcc_release_ver ) "../source/gcc-$gcc_ver/configure" --build="$system_type" --target="$mingw_w64_target" "${static_build[@]}" "${disable_nls[@]}" --disable-multilib --prefix="$mingw_w64_prefix" --with-sysroot="$mingw_w64_prefix" --with-mpc="$mpc_prefix" --with-mpfr="$mpfr_prefix" --with-gmp="$gmp_prefix" --with-isl="$isl_prefix" --enable-languages="$enabled_langs" --enable-fully-dynamic-string --enable-lto  > >(build_log) 2>&1 || print_error ;;
 esac
 }
 
@@ -446,7 +443,7 @@ if [[ -z "$binutils_ver" ]]; then
   binutils_ver="$binutils_release_ver"
 fi
 if [[ -z "$gcc_ver" ]]; then
-  gcc_ver="$gcc_release_ver"
+  gcc_ver="$gcc_old_release_ver"
 fi
 if [[ -z "$disable_nls" ]]; then
   disable_nls=('--disable-nls')
@@ -482,7 +479,11 @@ esac
 if [[ ! -f "$archive" ]]; then
   build_progress "$archive" 'Downloading'
   wget -nv -t 5 "$download_url" > >(build_log) 2>&1
-  build_progress 'done'
+  if [[ -f "$archive" ]]; then
+    build_progress 'done'
+  else
+    exit 1
+  fi
 fi
 
 if [[ ! -d "$package_name" ]]; then
@@ -561,12 +562,7 @@ build_binutils () {
 cd "$pkgs_dir" || print_error
 create_pkg_dirs 'binutils' || print_error
 if [[ "$binutils_ver" != 'git' ]]; then
-  if [[ "$binutils_ver" = "snapshot" ]]; then
-    download_extract "ftp://sourceware.org/pub/binutils/snapshots/binutils-$binutils_snapshot_ver.tar.bz2"
-    binutils_ver="$binutils_snapshot_ver"
-  else
-    download_extract "http://ftp.gnu.org/gnu/binutils/binutils-$binutils_ver.tar.bz2" "ftp://ftp.gnu.org/gnu/binutils/binutils-$binutils_ver.tar.bz2"
-  fi
+  download_extract "http://ftp.gnu.org/gnu/binutils/binutils-$binutils_ver.tar.bz2" "ftp://ftp.gnu.org/gnu/binutils/binutils-$binutils_ver.tar.bz2"
 else
   git_dl "binutils" "git://sourceware.org/git/binutils-gdb.git"
 fi
@@ -673,13 +669,12 @@ if [[ ! -d "./$mingw_w64_target/include" ]]; then
 fi
 
 case "$gcc_ver" in
-  $gcc_release_ver ) cloog_ver="$cloog_release_ver"; isl_ver="$isl_release_ver" ;;
-  $gcc_old_release_ver ) cloog_ver='0.18.0';  isl_ver='0.11.1' ;;
+  $gcc_release_ver ) isl_ver="$isl_release_ver" ;;
+  $gcc_old_release_ver ) isl_ver='0.12.2'; cloog_ver='0.18.1';  cloog_prefix="$pkgs_dir/cloog/cloog-$cloog_ver-$uname_m" ;;
 esac
 
 mpfr_prefix="$pkgs_dir/mpfr/mpfr-$mpfr_release_ver-$uname_m"
 mpc_prefix="$pkgs_dir/mpc/mpc-$mpc_release_ver-$uname_m"
-cloog_prefix="$pkgs_dir/cloog/cloog-$cloog_ver-$uname_m"
 isl_prefix="$pkgs_dir/isl/isl-$isl_ver-$uname_m"
 gmp_prefix="$pkgs_dir/gmp/gmp-$gmp_release_ver-$uname_m"
 
@@ -701,7 +696,9 @@ std_compile 'mpc' "$mpc_release_ver" "http://ftp.gnu.org/gnu/mpc/mpc-$mpc_releas
 std_compile 'isl' "$isl_ver" "ftp://gcc.gnu.org/pub/gcc/infrastructure/isl-$isl_ver.tar.bz2" "../source/isl-$isl_ver/configure" --prefix="$isl_prefix" --build="$system_type" --enable-static --disable-shared --with-gmp-prefix="$gmp_prefix" --with-piplib=no --with-clang=no
 
 #build cloog
-std_compile 'cloog' "$cloog_ver" "ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-$cloog_ver.tar.gz" "../source/cloog-$cloog_ver/configure" --prefix="$cloog_prefix" --build="$system_type" --enable-static --disable-shared --with-bits=gmp --with-isl=bundled --with-gmp-prefix="$gmp_prefix"
+if [[ "$gcc_ver" = "$gcc_old_release_ver" ]]; then
+  std_compile 'cloog' "$cloog_ver" "ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-$cloog_ver.tar.gz" "../source/cloog-$cloog_ver/configure" --prefix="$cloog_prefix" --build="$system_type" --enable-static --disable-shared --with-bits=gmp --with-isl=bundled --with-gmp-prefix="$gmp_prefix"
+fi
 
 export CC="$old_cc"
 
@@ -988,7 +985,7 @@ no_errors='MinGW-w64 has been built without errors.'
 calculate_steps ()
 {
 case "$arch" in
-  'multi' ) total_steps='68';;
+  'multi' ) total_steps='63';;
   'win32' ) total_steps='50';;
   'win64' ) total_steps='50';;
 esac
@@ -1004,6 +1001,9 @@ if [[ "$arch" = 'multi' ]]; then
   if [[ "$enable_widl" = 'yes' ]]; then
     total_steps=$((total_steps+6))
   fi
+  if [[ "$gcc_ver" = "$gcc_old_release_ver" ]]; then
+    total_steps=$((total_steps+5))
+  fi
 else
   if [[ "${static_build[@]}" = *"disable-shared"* ]]; then
     total_steps=$((total_steps-1))
@@ -1014,6 +1014,9 @@ else
   fi
   if [[ "$enable_widl" = 'yes' ]]; then
     total_steps=$((total_steps+3))
+  fi
+  if [[ "$gcc_ver" = "$gcc_old_release_ver" ]]; then
+    total_steps=$((total_steps+5))
   fi
 fi
 }
@@ -1051,9 +1054,9 @@ fi
 if [[ -n "$cpu_count_opt" ]]; then
   check_cpu_count_optarg
 fi
-test_valid_opt 'binutils_ver' "$binutils_release_ver" "snapshot" 'git'
+test_valid_opt 'binutils_ver' "$binutils_release_ver" 'git'
 if ! command -v makeinfo >/dev/null; then
-  printf 'makeinfo is needed to compile binutils and will need be be installed. On Debian/Ubuntu it is part of the "texinfo" software package.\n'
+  printf 'makeinfo is needed to compile binutils and will need be installed. On Debian/Ubuntu it is part of the "texinfo" software package.\n'
   exit 1
 fi
 test_valid_opt 'gcc_ver' "$gcc_release_ver" "$gcc_old_release_ver" 'svn'
