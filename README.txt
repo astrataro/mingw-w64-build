@@ -4,8 +4,7 @@ These build scripts are based on Zeranoe's MinGW-w64 build scripts (http://ffmpe
 
 Differences to Zeranoe's Script v3.6.7:
 - New option to build for target OS
-- GCC 5.3, gmp 6.1.0, isl 0.15
-- Custom patches for MinGW-w64
+- GCC 5.4, MinGW-w64 4.0.6, binutils 2.25.1, and updates to all dependency libraries
 
 Usage:
 - Build a Cross-Compiler Toolchain with the script
@@ -14,6 +13,8 @@ Usage:
 
 ---------------------------------------------------------
 Version History:
+r16 - 2016-06-14
+    GCC 5.4, MinGW-w64 4.0.6, mpfr 3.1.4, isl 0.16.1
 r15 - 2015-12-04
     Updated to Zeranoe's Script v3.6.7
     GCC 5.3, gmp 6.1.0, isl 0.15
