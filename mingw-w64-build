@@ -76,12 +76,12 @@ gcc_host=''
 
 ## Versions
 mingw_w64_release_ver='4.0.6'
-gcc_release_ver='6.1.0'
+gcc_release_ver='6.2.0'
 gcc_old_release_ver='4.9.3'
 mpfr_release_ver='3.1.4'
 mpc_release_ver='1.0.3'
-binutils_release_ver='2.25.1'
-gmp_release_ver='6.1.0'
+binutils_release_ver='2.27'
+gmp_release_ver='6.1.1'
 isl_release_ver='0.16.1'
 pthreads_w32_release_ver='2-9-1'
 
@@ -681,7 +681,7 @@ if [[ -n $CC ]]; then
 fi
 
 # Build gmp
-std_compile 'gmp' "$gmp_release_ver" "http://ftp.gnu.org/gnu/gmp/gmp-$gmp_release_ver.tar.xz" "../source/gmp-6.1.0/configure" --build="$system_type" --prefix="$gmp_prefix" $gcc_host --enable-fat --disable-shared --enable-static --enable-cxx CPPFLAGS='-fexceptions'
+std_compile 'gmp' "$gmp_release_ver" "http://ftp.gnu.org/gnu/gmp/gmp-$gmp_release_ver.tar.xz" "../source/gmp-$gmp_release_ver/configure" --build="$system_type" --prefix="$gmp_prefix" $gcc_host --enable-fat --disable-shared --enable-static --enable-cxx CPPFLAGS='-fexceptions'
 
 #build mpfr
 std_compile 'mpfr' "$mpfr_release_ver" "http://ftp.gnu.org/gnu/mpfr/mpfr-$mpfr_release_ver.tar.xz" "../source/mpfr-$mpfr_release_ver/configure" --build="$system_type" --prefix="$mpfr_prefix" $gcc_host --disable-shared --enable-static --with-gmp="$gmp_prefix"
