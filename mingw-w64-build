@@ -556,7 +556,7 @@ make > >(build_log) 2>&1 || print_error
 build_progress 'done'
 
 build_progress 'winpthreads' 'Installing'
-make install > >(build_log) 2>&1 || print_error
+make install-strip > >(build_log) 2>&1 || print_error
 build_progress 'done'
 }
 
@@ -591,7 +591,7 @@ if ! check_pkg_touch_success 'binutils' "$binutils_ver" 'compile' "$mingw_w64_ta
 fi
 pkg_touch_success 'binutils' "$binutils_ver" 'compile' "$mingw_w64_target"
 build_progress 'binutils' 'Installing'
-make install > >(build_log) 2>&1 || print_error
+make install-strip > >(build_log) 2>&1 || print_error
 build_progress 'done'
 }
 
@@ -628,7 +628,7 @@ std_compile ()
 
   if ! check_pkg_touch_success "$pkg" "$ver" 'install' "$uname_m"; then
     build_progress "$pkg" 'Installing'
-    make install > >(build_log) 2>&1 || print_error
+    make install-strip > >(build_log) 2>&1 || print_error
     build_progress 'done'
   fi
   pkg_touch_success "$pkg" "$ver" 'install' "$uname_m"
@@ -659,7 +659,7 @@ build_progress 'mingw-w64 headers' 'Configuring'
 build_progress 'done'
 
 build_progress 'mingw-w64 headers' 'Installing'
-make install > >(build_log) 2>&1 || print_error
+make install-strip > >(build_log) 2>&1 || print_error
 build_progress 'done'
 
 cd "$mingw_w64_prefix" || print_error
@@ -728,7 +728,7 @@ make -j "$cpu_count" all-gcc > >(build_log) 2>&1 || print_error
 build_progress 'done'
 
 build_progress 'gcc' 'Installing'
-make install-gcc > >(build_log) 2>&1 || print_error
+make install-strip-gcc > >(build_log) 2>&1 || print_error
 build_progress 'done'
 
 # Build mingw-w64 CRT 
@@ -747,7 +747,7 @@ fi
 build_progress 'done'
 
 build_progress 'mingw-w64 crt' 'Installing'
-make install > >(build_log) 2>&1 || print_error
+make install-strip > >(build_log) 2>&1 || print_error
 build_progress 'done'
 
 # Build GCC
@@ -786,7 +786,7 @@ if [[ "$enable_gendef" = 'yes' ]]; then
   build_progress 'done'
 
   build_progress 'gendef' 'Installing'
-  make install > >(build_log) 2>&1 || print_error
+  make install-strip > >(build_log) 2>&1 || print_error
   build_progress 'done'
 fi
 
@@ -804,7 +804,7 @@ if [[ "$enable_widl" = 'yes' ]]; then
   build_progress 'done'
 
   build_progress 'widl' 'Installing'
-  make install > >(build_log) 2>&1 || print_error
+  make install-strip > >(build_log) 2>&1 || print_error
   build_progress 'done'
 fi
 
